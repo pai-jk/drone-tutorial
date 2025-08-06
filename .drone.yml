@@ -1,9 +1,52 @@
 kind: pipeline
 type: kubernetes
-name: default
+name: dev-merge-request
+
+trigger:
+  event:
+    - pull_request
+  target:
+    - dev
 
 steps:
-  - name: greet
+  - name: validate-merge-request
     image: alpine
     commands:
-      - echo "Hello, Drone!"
+      - echo "✅ Merge Request to dev detected"
+      - echo "Run tests or lint here"
+
+---
+kind: pipeline
+type: kubernetes
+name: dev-push
+
+trigger:
+  branch:
+    - dev
+  event:
+    - push
+
+steps:
+  - name: build-dev
+    image: alpine
+    commands:
+      - echo "🚀 Code pushed to dev"
+      - echo "Build or deploy to dev environment here"
+
+---
+kind: pipeline
+type: kubernetes
+name: main-push
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
+
+steps:
+  - name: deploy-prod
+    image: alpine
+    commands:
+      - echo "🚀 Code pushed to main"
+      - echo "Deploy to production environment here"
