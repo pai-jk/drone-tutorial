@@ -1,0 +1,9 @@
+env:
+  DRONE_RPC_SECRET: "1234567890"
+  DRONE_RPC_HOST: "drone.drone.svc.cluster.local:8080"
+  DRONE_RPC_PROTO: "http"
+  DRONE_NAMESPACE_DEFAULT: "drone-ci"
+
+rbac:
+  buildNamespaces:
+    - drone-ci

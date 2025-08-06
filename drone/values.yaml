@@ -1,0 +1,42 @@
+env:
+  DRONE_SERVER_HOST: "drone.devops.local" # Drone 접속 도메인
+
+  DRONE_SERVER_PROTO: http
+  DRONE_RPC_SECRET: "1234567890" # 서버 ↔ Runner 간 인증용 비밀 문자열
+  ## GitLab 관련 설정
+  # DRONE_GITLAB_CLIENT_ID:
+  # DRONE_GITLAB_CLIENT_SECRET:
+  # DRONE_GITLAB_SERVER:
+
+  ## Github 관련 설정
+  DRONE_GITHUB_CLIENT_ID: "Ov23liThiOvk375brBlZ"
+  DRONE_GITHUB_CLIENT_SECRET: "0f70f75af808cdb259159e3b82de90121165ed48"
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  hosts:
+    - host: drone.devops.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+persistentVolume:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  annotations: {}
+  existingClaim: ""
+  mountPath: /data
+  size: 8Gi
+  storageClass: ""
+  volumeMode: ""
+  subPath: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+  annotations: {}
+  nodePort:
