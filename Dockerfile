@@ -9,4 +9,5 @@ EXPOSE 8080
 # health-like check
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD wget -qO- http://127.0.0.1:8080/ || exit 1
+  
 CMD ["busybox", "httpd", "-f", "-p", "8080", "-h", "/app"]
