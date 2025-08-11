@@ -1,0 +1,13 @@
+[project]
+name = "drone-test"
+version = "0.1.0"
+description = ""
+authors = [{ name = "이준규", email = "dlwnsrb05@publicai.co.kr" }]
+readme = "README.md"
+requires-python = "3.13.3"
+dependencies = ["flake8 (>=7.3.0,<8.0.0)", "pytest (>=8.4.1,<9.0.0)"]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
