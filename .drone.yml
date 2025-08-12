@@ -4,9 +4,8 @@ type: kubernetes
 name: dev-merge-request
 
 trigger:
-  event:
-    - pull_request
-  target: # PR의 base 브랜치
+  event: [pull_request]
+  branch: # PR의 target 브랜치를 평가
     - dev
 
 steps:
