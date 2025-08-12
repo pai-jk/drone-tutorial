@@ -30,18 +30,29 @@ trigger:
     - push
 
 steps:
+  - name: clone
+    image: alpine/git:v2.40.1
+    commands:
+      - echo "📦 Cloning repository..."
+
   - name: set-vars
     image: alpine:3.20
     commands:
       - apk add --no-cache coreutils
-      - printf "SHORT_SHA=%s\n" "$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)" > .ci_env
-      - printf "VERSION=%s\n" "$(tr -d '\n' < VERSION || echo '0.0.0')" >> .ci_env
+      - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
+      - VERSION=$(tr -d '\n' < VERSION || echo '0.0.0')
+      - echo "SHORT_SHA=${SHORT_SHA}" | tee -a .ci_env
+      - echo "VERSION=${VERSION}" | tee -a .ci_env
+      - echo "REGISTRY=${REGISTRY}" | tee -a .ci_env
+      - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
+      - echo "📋 Build variables:"
       - cat .ci_env
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
 
   - name: build-and-push
     image: gcr.io/kaniko-project/executor:v1.23.2
-    # kaniko 이미지는 기본 entrypoint가 executor 이므로, 쉘 로직을 쓰기 위해 entrypoint 지정
-    entrypoint: ["/busybox/sh", "-c"]
     environment:
       REGISTRY:
         from_secret: REGISTRY
@@ -50,31 +61,37 @@ steps:
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
     commands:
-      - . .ci_env
-      # Docker credential 생성
+      # 환경 변수 로드
+      - source .ci_env
+      - echo "🔧 Setting up Docker credentials..."
+      # Docker credential 생성 (환경 변수를 먼저 확장)
       - mkdir -p /kaniko/.docker
-      - >
-        cat > /kaniko/.docker/config.json <<JSON
+      - AUTH_STRING=$(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')
+      - |
+        cat > /kaniko/.docker/config.json <<EOF
         {
           "auths": {
             "${REGISTRY}": {
-              "auth": "$(printf "%s" "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')"
+              "auth": "${AUTH_STRING}"
             }
           }
         }
-        JSON
-      - cat /kaniko/.docker/config.json
-      # DEV 태그: <VERSION>-dev-<shortsha>
-      - >
-        /kaniko/executor
-        --context "${DRONE_WORKSPACE}"
-        --dockerfile "${DRONE_WORKSPACE}/Dockerfile"
-        --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}"
-        --snapshotMode=redo
-        --reproducible
-        --single-snapshot
-        --use-new-run
-      - echo "Pushed ${REGISTRY}/${DRONE_REPO}:$VERSION-dev-$SHORT_SHA"
+        EOF
+      - echo "✅ Docker config created"
+      # 빌드 실행
+      - echo "🏗️ Building and pushing image..."
+      - |
+        /kaniko/executor \
+          --context "${DRONE_WORKSPACE}" \
+          --dockerfile "${DRONE_WORKSPACE}/Dockerfile" \
+          --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}" \
+          --cache=true \
+          --cache-ttl=24h \
+          --reproducible \
+          --single-snapshot \
+          --use-new-run \
+          --verbosity=info
+      - echo "✅ Successfully pushed ${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}"
 
 ---
 kind: pipeline
@@ -88,21 +105,29 @@ trigger:
     - push
 
 steps:
+  - name: clone
+    image: alpine/git:v2.40.1
+    commands:
+      - echo "📦 Cloning repository..."
+
   - name: set-vars
     image: alpine:3.20
     commands:
       - apk add --no-cache coreutils
       - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
-      - VERSION=$(tr -d '\n' < VERSION)
-      - echo "SHORT_SHA=${SHORT_SHA}"   >> .ci_env
-      - echo "VERSION=${VERSION}"       >> .ci_env
+      - VERSION=$(tr -d '\n' < VERSION || echo '0.0.0')
+      - echo "SHORT_SHA=${SHORT_SHA}" | tee -a .ci_env
+      - echo "VERSION=${VERSION}" | tee -a .ci_env
+      - echo "REGISTRY=${REGISTRY}" | tee -a .ci_env
+      - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
+      - echo "📋 Build variables:"
       - cat .ci_env
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
 
   - name: build-and-push
-    image: gcr.io/kaniko-project/executor:latest
-    entrypoint:
-      - /busybox/sh
-      - -c
+    image: gcr.io/kaniko-project/executor:v1.23.2
     environment:
       REGISTRY:
         from_secret: REGISTRY
@@ -111,25 +136,35 @@ steps:
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
     commands:
+      # 환경 변수 로드
       - source .ci_env
+      - echo "🔧 Setting up Docker credentials..."
+      # Docker credential 생성 (환경 변수를 먼저 확장)
       - mkdir -p /kaniko/.docker
-      - >
-        cat > /kaniko/.docker/config.json <<'JSON'
+      - AUTH_STRING=$(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')
+      - |
+        cat > /kaniko/.docker/config.json <<EOF
         {
           "auths": {
             "${REGISTRY}": {
-              "auth": "$(echo -n ${REGISTRY_USERNAME}:${REGISTRY_PASSWORD} | base64 -w0)"
+              "auth": "${AUTH_STRING}"
             }
           }
         }
-        JSON
-      # PROD 태그: <VERSION> 와 latest 동시 태깅
-      - >
-        /kaniko/executor
-        --context "${DRONE_WORKSPACE}"
-        --dockerfile "${DRONE_WORKSPACE}/Dockerfile"
-        --destination "${REGISTRY}/${DRONE_REPO}:$VERSION"
-        --destination "${REGISTRY}/${DRONE_REPO}:latest"
-        --skip-tls-verify
-        --reproducible
-      - echo "Pushed ${REGISTRY}/${DRONE_REPO}:$VERSION and :latest"
+        EOF
+      - echo "✅ Docker config created"
+      # 빌드 실행 (PROD 태그: VERSION과 latest 동시 태깅)
+      - echo "🏗️ Building and pushing production images..."
+      - |
+        /kaniko/executor \
+          --context "${DRONE_WORKSPACE}" \
+          --dockerfile "${DRONE_WORKSPACE}/Dockerfile" \
+          --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}" \
+          --destination "${REGISTRY}/${DRONE_REPO}:latest" \
+          --cache=true \
+          --cache-ttl=24h \
+          --reproducible \
+          --single-snapshot \
+          --use-new-run \
+          --verbosity=info
+      - echo "✅ Successfully pushed ${REGISTRY}/${DRONE_REPO}:${VERSION} and ${REGISTRY}/${DRONE_REPO}:latest"
