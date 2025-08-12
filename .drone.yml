@@ -33,11 +33,23 @@ steps:
   - name: set-vars
     image: alpine:3.20
     commands:
+      - |
+        set -e
+        apk add --no-cache coreutils
+        SHORT_SHA="$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)"
+        VERSION="$(tr -d '\n' < VERSION || true)"
+        {
+          echo "SHORT_SHA=${SHORT_SHA}"
+          echo "VERSION=${VERSION}"
+        } > .ci_env
+        cat .ci_env
+
+  - name: set-vars2
+    image: alpine:3.20
+    commands:
       - apk add --no-cache coreutils
-      - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
-      - VERSION=$(tr -d '\n' < VERSION)
-      - echo "SHORT_SHA=${SHORT_SHA}"   >> .ci_env
-      - echo "VERSION=${VERSION}"       >> .ci_env
+      - printf "SHORT_SHA=%s\n" "$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)" > .ci_env
+      - printf "VERSION=%s\n" "$(tr -d '\n' < VERSION || echo '0.0.0')" >> .ci_env
       - cat .ci_env
 
   - name: build-and-push
