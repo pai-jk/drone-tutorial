@@ -37,6 +37,9 @@ steps:
 
   - name: set-vars
     image: alpine:3.20
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
     commands:
       - apk add --no-cache coreutils
       - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
@@ -47,9 +50,6 @@ steps:
       - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
       - echo "Build variables:"
       - cat .ci_env
-    environment:
-      REGISTRY:
-        from_secret: REGISTRY
 
   - name: build-and-push
     image: gcr.io/kaniko-project/executor:v1.23.2
@@ -102,6 +102,9 @@ steps:
 
   - name: set-vars
     image: alpine:3.20
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
     commands:
       - apk add --no-cache coreutils
       - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
@@ -112,9 +115,6 @@ steps:
       - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
       - echo "Build variables:"
       - cat .ci_env
-    environment:
-      REGISTRY:
-        from_secret: REGISTRY
 
   - name: build-and-push
     image: gcr.io/kaniko-project/executor:v1.23.2
