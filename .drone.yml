@@ -33,31 +33,15 @@ steps:
   - name: set-vars
     image: alpine:3.20
     commands:
-      - |
-        set -e
-        apk add --no-cache coreutils
-        SHORT_SHA="$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)"
-        VERSION="$(tr -d '\n' < VERSION || true)"
-        {
-          echo "SHORT_SHA=${SHORT_SHA}"
-          echo "VERSION=${VERSION}"
-        } > .ci_env
-        cat .ci_env
-
-  - name: set-vars2
-    image: alpine:3.20
-    commands:
       - apk add --no-cache coreutils
       - printf "SHORT_SHA=%s\n" "$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)" > .ci_env
       - printf "VERSION=%s\n" "$(tr -d '\n' < VERSION || echo '0.0.0')" >> .ci_env
       - cat .ci_env
 
   - name: build-and-push
-    image: gcr.io/kaniko-project/executor:latest
+    image: gcr.io/kaniko-project/executor:v1.23.2
     # kaniko 이미지는 기본 entrypoint가 executor 이므로, 쉘 로직을 쓰기 위해 entrypoint 지정
-    entrypoint:
-      - /busybox/sh
-      - -c
+    entrypoint: ["/busybox/sh", "-c"]
     environment:
       REGISTRY:
         from_secret: REGISTRY
@@ -66,36 +50,31 @@ steps:
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
     commands:
-      - source .ci_env
+      - . .ci_env
       # Docker credential 생성
       - mkdir -p /kaniko/.docker
       - >
-        cat > /kaniko/.docker/config.json <<'JSON'
+        cat > /kaniko/.docker/config.json <<JSON
         {
           "auths": {
             "${REGISTRY}": {
-              "auth": "$(echo -n ${REGISTRY_USERNAME}:${REGISTRY_PASSWORD} | base64 -w0)"
+              "auth": "$(printf "%s" "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')"
             }
           }
         }
         JSON
+      - cat /kaniko/.docker/config.json
       # DEV 태그: <VERSION>-dev-<shortsha>
       - >
         /kaniko/executor
         --context "${DRONE_WORKSPACE}"
         --dockerfile "${DRONE_WORKSPACE}/Dockerfile"
-        --destination "${REGISTRY}/${DRONE_REPO}:$VERSION-dev-$SHORT_SHA"
-        --oci-layout-path /kaniko/oci
-        --skip-tls-verify
+        --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}"
+        --snapshotMode=redo
         --reproducible
+        --single-snapshot
+        --use-new-run
       - echo "Pushed ${REGISTRY}/${DRONE_REPO}:$VERSION-dev-$SHORT_SHA"
-
-  # (선택) 이미지 스캔
-  - name: trivy-scan
-    image: aquasec/trivy:latest
-    commands:
-      - source .ci_env
-      - trivy image --exit-code 0 --severity HIGH,CRITICAL "${REGISTRY}/${DRONE_REPO}:$VERSION-dev-$SHORT_SHA"
 
 ---
 kind: pipeline
