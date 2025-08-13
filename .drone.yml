@@ -24,43 +24,8 @@ type: kubernetes
 name: default
 
 steps:
-  - name: print secrets # (디버깅용 step, 완료 후 지워야 함)
-    image: alpine
-    environment:
-      registry: harbor.pai-world.com
-      username:
-        from_secret: REGISTRY_USERNAME
-      password:
-        from_secret: REGISTRY_PASSWORD
-    commands:
-      - echo $registry
-      - echo $username
-
-  # - name: build and push docker image
-  #   image: plugins/kaniko
-  #   environment:
-  #     REGISTRY:
-  #       from_secret: REGISTRY
-  #     REGISTRY_USERNAME:
-  #       from_secret: REGISTRY_USERNAME
-  #     REGISTRY_PASSWORD:
-  #       from_secret: REGISTRY_PASSWORD
-  #   settings:
-  #     registry: $REGISTRY
-  #     username:
-  #       from_secret: REGISTRY_USERNAME
-  #     password:
-  #       from_secret: REGISTRY_PASSWORD
-  #     repo: harbor.pai-world.com/test/drone-tutorial
-  #     tags:
-  #       - latest
-  #     dockerfile: ./project/Dockerfile
-  #     context: ./project
-  #     cache: true
-  #     cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
-
   # # l0AVf3DaxsfWRGlY8FYO1hX9c6vI7geW
-  - name: kaniko
+  - name: build and push container image
     image: plugins/kaniko:1.7.0
     settings:
       registry: harbor.pai-world.com
@@ -71,7 +36,37 @@ steps:
       repo: harbor.pai-world.com/test/drone-tutorial
       tags:
         - latest
-        - 0.0.1
+        - 0.0.${DRONE_BUILD_NUMBER}
+        - calver-${DRONE_BUILD_CREATED:0:8}-${DRONE_BUILD_NUMBER}
+        - sha-${DRONE_COMMIT_SHA}
       dockerfile: ./project/Dockerfile
       cache: true
       cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
+
+---
+kind: pipeline
+type: kubernetes
+name: release
+
+# 태그로 트리거되는 릴리스 전용 파이프라인
+trigger:
+  event:
+    - tag
+
+steps:
+  - name: build-push-release
+    image: plugins/kaniko:1.7.0
+    settings:
+      registry: harbor.pai-world.com
+      username:
+        from_secret: REGISTRY_USERNAME
+      password:
+        from_secret: REGISTRY_PASSWORD
+      repo: harbor.pai-world.com/test/drone-tutorial
+      dockerfile: ./project/Dockerfile
+      cache: true
+      cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
+      # 태그에서 'v' 프리픽스 제거해 사용 (예: v1.2.3 -> 1.2.3)
+      tags:
+        - latest
+        - ${DRONE_TAG#v}
