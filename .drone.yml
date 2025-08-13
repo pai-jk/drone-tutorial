@@ -5,7 +5,7 @@ name: default
 steps:
   - name: print secrets # (디버깅용 step, 완료 후 지워야 함)
     image: alpine
-    settings:
+    environment:
       registry:
         from_secret: REGISTRY
       username:
@@ -20,7 +20,7 @@ steps:
 
   - name: build and push docker image
     image: plugins/kaniko
-    settings:
+    environment:
       registry:
         from_secret: REGISTRY
       username:
