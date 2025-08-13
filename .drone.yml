@@ -50,10 +50,10 @@ steps:
       registry: $REGISTRY
       username: $REGISTRY_USERNAME
       password: $REGISTRY_PASSWORD
-      repo: ${REGISTRY}/test/drone-tutorial
+      repo: $REGISTRY/test/drone-tutorial
       tags:
         - latest
       dockerfile: ./project/Dockerfile
       context: ./project
       cache: true
-      cache_repo: ${REGISTRY}/test/drone-tutorial/cache
+      cache_repo: $REGISTRY/test/drone-tutorial/cache
