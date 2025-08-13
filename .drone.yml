@@ -28,8 +28,10 @@ steps:
     image: alpine
     environment:
       registry: harbor.pai-world.com
-      username: admin
-      password: Harbor12345
+      username:
+        from_secret: REGISTRY_USERNAME
+      password:
+        from_secret: REGISTRY_PASSWORD
     commands:
       - echo $registry
       - echo $username
@@ -67,4 +69,9 @@ steps:
       password:
         from_secret: REGISTRY_PASSWORD
       repo: harbor.pai-world.com/test/drone-tutorial
-      tags: latest
+      tags:
+        - latest
+        - 0.0.1
+      dockerfile: ./project/Dockerfile
+      cache: true
+      cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
