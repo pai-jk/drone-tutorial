@@ -63,9 +63,11 @@ steps:
   - name: kaniko
     image: plugins/kaniko
     settings:
+      registry:
+        from_secret: REGISTRY
       username:
         from_secret: REGISTRY_USERNAME
       password:
         from_secret: REGISTRY_PASSWORD
-      repo: harbor.pai-world.com/test/drone-tutorial
+      repo: test/drone-tutorial
       tags: latest
