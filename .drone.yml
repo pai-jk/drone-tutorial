@@ -36,9 +36,7 @@ steps:
       repo: harbor.pai-world.com/test/drone-tutorial
       tags:
         - latest
-        - 0.0.${DRONE_BUILD_NUMBER}
-        - calver-${DRONE_BUILD_CREATED:0:8}-${DRONE_BUILD_NUMBER}
-        - sha-${DRONE_COMMIT_SHA}
+        - sha-${DRONE_COMMIT_SHA:0:7}
       dockerfile: ./project/Dockerfile
       cache: true
       cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
