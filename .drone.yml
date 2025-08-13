@@ -61,7 +61,7 @@ steps:
     image: plugins/kaniko:1.7.0
     settings:
       registry: harbor.pai-world.com
-      username: admin
-      password: Harbor12345
+      username: robot$test-project-bot
+      password: aaByeFXjTJCCoOCjvy2tVZduKvyffd1W
       repo: harbor.pai-world.com/test/drone-tutorial
       tags: latest
