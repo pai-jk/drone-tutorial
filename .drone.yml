@@ -37,25 +37,35 @@ steps:
       - echo $registry
       - echo $username
 
-  - name: build and push docker image
+  # - name: build and push docker image
+  #   image: plugins/kaniko
+  #   environment:
+  #     REGISTRY:
+  #       from_secret: REGISTRY
+  #     REGISTRY_USERNAME:
+  #       from_secret: REGISTRY_USERNAME
+  #     REGISTRY_PASSWORD:
+  #       from_secret: REGISTRY_PASSWORD
+  #   settings:
+  #     registry: $REGISTRY
+  #     username:
+  #       from_secret: REGISTRY_USERNAME
+  #     password:
+  #       from_secret: REGISTRY_PASSWORD
+  #     repo: harbor.pai-world.com/test/drone-tutorial
+  #     tags:
+  #       - latest
+  #     dockerfile: ./project/Dockerfile
+  #     context: ./project
+  #     cache: true
+  #     cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
+
+  - name: kaniko
     image: plugins/kaniko
-    environment:
-      REGISTRY:
-        from_secret: REGISTRY
-      REGISTRY_USERNAME:
-        from_secret: REGISTRY_USERNAME
-      REGISTRY_PASSWORD:
-        from_secret: REGISTRY_PASSWORD
     settings:
-      registry: $REGISTRY
       username:
         from_secret: REGISTRY_USERNAME
       password:
         from_secret: REGISTRY_PASSWORD
       repo: harbor.pai-world.com/test/drone-tutorial
-      tags:
-        - latest
-      dockerfile: ./project/Dockerfile
-      context: ./project
-      cache: true
-      cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
+      tags: latest
