@@ -34,26 +34,26 @@ steps:
       password:
         from_secret: REGISTRY_PASSWORD
     commands:
-      - echo $REGISTRY
-      - echo $REGISTRY_USERNAME
       - echo $registry
       - echo $username
-      - echo ${REGISTRY}
-      - echo ${REGISTRY_USERNAME}
 
-  # - name: build and push docker image
-  #   image: plugins/kaniko
-  #   environment:
-  #     registry:
-  #       from_secret: REGISTRY
-  #     username:
-  #       from_secret: REGISTRY_USERNAME
-  #     password:
-  #       from_secret: REGISTRY_PASSWORD
-  #   repo: ${REGISTRY}/test/drone-tutorial
-  #   tags:
-  #     - latest
-  #   dockerfile: ./project/Dockerfile # Dockerfile 경로 (커스텀 지정 가능)
-  #   context: ./project # 빌드 컨텍스트 (일반적으로 현재 디렉토리)
-  #   cache: true # 캐시 활성화
-  #   cache_repo: ${REGISTRY}/test/drone-tutorial/cache # 캐시 저장소 지정
+  - name: build and push docker image
+    image: plugins/kaniko
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
+      REGISTRY_USERNAME:
+        from_secret: REGISTRY_USERNAME
+      REGISTRY_PASSWORD:
+        from_secret: REGISTRY_PASSWORD
+    settings:
+      registry: $REGISTRY
+      username: $REGISTRY_USERNAME
+      password: $REGISTRY_PASSWORD
+      repo: ${REGISTRY}/test/drone-tutorial
+      tags:
+        - latest
+      dockerfile: ./project/Dockerfile
+      context: ./project
+      cache: true
+      cache_repo: ${REGISTRY}/test/drone-tutorial/cache
