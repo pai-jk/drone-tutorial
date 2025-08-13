@@ -6,11 +6,11 @@ steps:
   - name: build and push docker image
     image: plugins/kaniko
     settings:
-      REGISTRY:
+      registry:
         from_secret: REGISTRY
-      REGISTRY_USERNAME:
+      username:
         from_secret: REGISTRY_USERNAME
-      REGISTRY_PASSWORD:
+      password:
         from_secret: REGISTRY_PASSWORD
       repo: ${REGISTRY}/test
       tags:
