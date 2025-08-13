@@ -19,6 +19,12 @@ steps:
       - ./scripts/test.sh
 
 ---
+trigger:
+  branch:
+    - dev
+  event:
+    - push
+
 kind: pipeline
 type: kubernetes
 name: default
@@ -68,3 +74,4 @@ steps:
       tags:
         - latest
         - ${DRONE_TAG#v}
+        - sha-${DRONE_COMMIT_SHA:0:7}
