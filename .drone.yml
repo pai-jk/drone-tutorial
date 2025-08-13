@@ -27,12 +27,9 @@ steps:
   - name: print secrets # (디버깅용 step, 완료 후 지워야 함)
     image: alpine
     environment:
-      registry:
-        from_secret: REGISTRY
-      username:
-        from_secret: REGISTRY_USERNAME
-      password:
-        from_secret: REGISTRY_PASSWORD
+      registry: harbor.pai-world.com
+      username: admin
+      password: Harbor12345
     commands:
       - echo $registry
       - echo $username
@@ -61,13 +58,10 @@ steps:
   #     cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
 
   - name: kaniko
-    image: plugins/kaniko
+    image: plugins/kaniko:1.7.0
     settings:
-      registry:
-        from_secret: REGISTRY
-      username:
-        from_secret: REGISTRY_USERNAME
-      password:
-        from_secret: REGISTRY_PASSWORD
+      registry: harbor.pai-world.com
+      username: admin
+      password: Harbor12345
       repo: test/drone-tutorial
       tags: latest
