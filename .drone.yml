@@ -47,8 +47,8 @@ steps:
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
     commands:
-      - echo $REGISTRY $REGISTRY_USERNAME
       - mkdir -p /kaniko/.docker
+      - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USERNAME\",\"password\":\"$REGISTRY_PASSWORD\",\"auth\":\"$(echo -n $REGISTRY_USERNAME:$REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
 
   # - name: build and push docker image
   #   image: plugins/kaniko
