@@ -1,63 +1,21 @@
 kind: pipeline
 type: kubernetes
-name: dev-push
-
-trigger:
-  branch:
-    - dev
-  event:
-    - push
+name: default
 
 steps:
-  - name: clone
-    image: alpine/git:v2.40.1
-    commands:
-      - echo "Cloning repository..."
-
-  - name: set-vars
-    image: alpine:3.20
-    environment:
-      REGISTRY:
-        from_secret: REGISTRY
-    commands:
-      - apk add --no-cache coreutils
-      - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
-      - VERSION=$(tr -d '\n' < VERSION || echo '0.0.0')
-      - echo "SHORT_SHA=${SHORT_SHA}" | tee -a .ci_env
-      - echo "VERSION=${VERSION}" | tee -a .ci_env
-      - echo "REGISTRY=${REGISTRY}" | tee -a .ci_env
-      - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
-      - echo "Build variables:"
-      - cat .ci_env
-
-  - name: build-and-push
-    image: gcr.io/kaniko-project/executor:v1.23.2
-    environment:
+  - name: build and push docker image
+    image: plugins/kaniko
+    settings:
       REGISTRY:
         from_secret: REGISTRY
       REGISTRY_USERNAME:
         from_secret: REGISTRY_USERNAME
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
-    commands:
-      - echo "Loading environment variables..."
-      - source .ci_env
-      - echo "Setting up Docker credentials..."
-      - mkdir -p /kaniko/.docker
-      - AUTH_STRING=$(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')
-      - echo "{\"auths\":{\"${REGISTRY}\":{\"auth\":\"${AUTH_STRING}\"}}}" > /kaniko/.docker/config.json
-      - echo "Docker config created"
-      - cat /kaniko/.docker/config.json
-      - echo "Building and pushing image..."
-      - |
-        /kaniko/executor \
-          --context "${DRONE_WORKSPACE}" \
-          --dockerfile "${DRONE_WORKSPACE}/Dockerfile" \
-          --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}" \
-          --cache=true \
-          --cache-ttl=24h \
-          --reproducible \
-          --single-snapshot \
-          --use-new-run \
-          --verbosity=info
-      - echo "Successfully pushed ${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}"
+      repo: ${REGISTRY}/test
+      tags:
+        - latest
+      dockerfile: ./project/Dockerfile # Dockerfile 경로 (커스텀 지정 가능)
+      context: ./project # 빌드 컨텍스트 (일반적으로 현재 디렉토리)
+      cache: true # 캐시 활성화
+      cache_repo: ${REGISTRY}/test/cache # 캐시 저장소 지정

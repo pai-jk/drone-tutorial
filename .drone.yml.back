@@ -1,19 +1,22 @@
+---
 kind: pipeline
 type: kubernetes
 name: dev-merge-request
 
 trigger:
-  event:
-    - pull_request
-  target:
+  event: [pull_request]
+  branch:
     - dev
 
 steps:
   - name: validate-merge-request
-    image: alpine
+    image: python:3.13-alpine
     commands:
-      - echo "✅ Merge Request to dev detected"
-      - echo "Run tests or lint here"
+      - echo "Merge Request to dev detected"
+      - apk add --no-cache git bash coreutils
+      - chmod +x scripts/lint.sh scripts/test.sh
+      - ./scripts/lint.sh
+      - ./scripts/test.sh
 
 ---
 kind: pipeline
@@ -27,11 +30,58 @@ trigger:
     - push
 
 steps:
-  - name: build-dev
-    image: alpine
+  - name: clone
+    image: alpine/git:v2.40.1
     commands:
-      - echo "🚀 Code pushed to dev"
-      - echo "Build or deploy to dev environment here"
+      - echo "Cloning repository..."
+
+  - name: set-vars
+    image: alpine:3.20
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
+    commands:
+      - apk add --no-cache coreutils
+      - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
+      - VERSION=$(tr -d '\n' < VERSION || echo '0.0.0')
+      - echo "SHORT_SHA=${SHORT_SHA}" | tee -a .ci_env
+      - echo "VERSION=${VERSION}" | tee -a .ci_env
+      - echo "REGISTRY=${REGISTRY}" | tee -a .ci_env
+      - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
+      - echo "Build variables:"
+      - cat .ci_env
+
+  - name: build-and-push
+    image: gcr.io/kaniko-project/executor:v1.23.2
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
+      REGISTRY_USERNAME:
+        from_secret: REGISTRY_USERNAME
+      REGISTRY_PASSWORD:
+        from_secret: REGISTRY_PASSWORD
+    commands:
+      - echo "Loading environment variables..."
+      - source .ci_env
+      - echo "Setting up Docker credentials..."
+      - mkdir -p /kaniko/.docker
+      - AUTH_STRING=$(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')
+      - echo "{\"auths\":{\"${REGISTRY}\":{\"auth\":\"${AUTH_STRING}\"}}}" > /kaniko/.docker/config.json
+      - echo "Docker config created"
+      - cat /kaniko/.docker/config.json
+      - echo "Building and pushing image..."
+      - |
+        /kaniko/executor \
+          --context "${DRONE_WORKSPACE}" \
+          --dockerfile "${DRONE_WORKSPACE}/Dockerfile" \
+          --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}" \
+          --cache=true \
+          --cache-ttl=24h \
+          --reproducible \
+          --single-snapshot \
+          --use-new-run \
+          --verbosity=info
+      - echo "Successfully pushed ${REGISTRY}/${DRONE_REPO}:${VERSION}-dev-${SHORT_SHA}"
 
 ---
 kind: pipeline
@@ -45,8 +95,56 @@ trigger:
     - push
 
 steps:
-  - name: deploy-prod
-    image: alpine
+  - name: clone
+    image: alpine/git:v2.40.1
     commands:
-      - echo "🚀 Code pushed to main"
-      - echo "Deploy to production environment here"
+      - echo "Cloning repository..."
+
+  - name: set-vars
+    image: alpine:3.20
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
+    commands:
+      - apk add --no-cache coreutils
+      - SHORT_SHA=$(printf "%s" "${DRONE_COMMIT_SHA}" | cut -c1-7)
+      - VERSION=$(tr -d '\n' < VERSION || echo '0.0.0')
+      - echo "SHORT_SHA=${SHORT_SHA}" | tee -a .ci_env
+      - echo "VERSION=${VERSION}" | tee -a .ci_env
+      - echo "REGISTRY=${REGISTRY}" | tee -a .ci_env
+      - echo "DRONE_REPO=${DRONE_REPO}" | tee -a .ci_env
+      - echo "Build variables:"
+      - cat .ci_env
+
+  - name: build-and-push
+    image: gcr.io/kaniko-project/executor:v1.23.2
+    environment:
+      REGISTRY:
+        from_secret: REGISTRY
+      REGISTRY_USERNAME:
+        from_secret: REGISTRY_USERNAME
+      REGISTRY_PASSWORD:
+        from_secret: REGISTRY_PASSWORD
+    commands:
+      - echo "Loading environment variables..."
+      - source .ci_env
+      - echo "Setting up Docker credentials..."
+      - mkdir -p /kaniko/.docker
+      - AUTH_STRING=$(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 | tr -d '\n')
+      - echo "{\"auths\":{\"${REGISTRY}\":{\"auth\":\"${AUTH_STRING}\"}}}" > /kaniko/.docker/config.json
+      - echo "Docker config created"
+      - cat /kaniko/.docker/config.json
+      - echo "Building and pushing production images..."
+      - |
+        /kaniko/executor \
+          --context "${DRONE_WORKSPACE}" \
+          --dockerfile "${DRONE_WORKSPACE}/Dockerfile" \
+          --destination "${REGISTRY}/${DRONE_REPO}:${VERSION}" \
+          --destination "${REGISTRY}/${DRONE_REPO}:latest" \
+          --cache=true \
+          --cache-ttl=24h \
+          --reproducible \
+          --single-snapshot \
+          --use-new-run \
+          --verbosity=info
+      - echo "Successfully pushed ${REGISTRY}/${DRONE_REPO}:${VERSION} and ${REGISTRY}/${DRONE_REPO}:latest"
