@@ -57,11 +57,14 @@ steps:
   #     cache: true
   #     cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
 
+  # # l0AVf3DaxsfWRGlY8FYO1hX9c6vI7geW
   - name: kaniko
     image: plugins/kaniko:1.7.0
     settings:
       registry: harbor.pai-world.com
-      username: robot$test-pj
-      password: l0AVf3DaxsfWRGlY8FYO1hX9c6vI7geW
+      username:
+        from_secret: REGISTRY_USERNAME
+      password:
+        from_secret: REGISTRY_PASSWORD
       repo: harbor.pai-world.com/test/drone-tutorial
       tags: latest
