@@ -49,9 +49,7 @@ steps:
     commands:
       - echo $REGISTRY $REGISTRY_USERNAME
       - mkdir -p /kaniko/.docker
-      - |
-        echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USERNAME\",\"password\":\"$REGISTRY_PASSWORD\",\"auth\":\"$(echo -n $REGISTRY_USERNAME:$REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-      - /kaniko/executor --dockerfile=./project/Dockerfile --context=dir://./project --destination=$REGISTRY/test/drone-tutorial:latest --cache=true --verbosity=debug
+
   # - name: build and push docker image
   #   image: plugins/kaniko
   #   environment:
