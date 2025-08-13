@@ -37,8 +37,8 @@ steps:
       - echo $registry
       - echo $username
 
-  - name: build and push docker image
-    image: plugins/kaniko
+  - name: kaniko manual build
+    image: gcr.io/kaniko-project/executor
     environment:
       REGISTRY:
         from_secret: REGISTRY
@@ -46,14 +46,29 @@ steps:
         from_secret: REGISTRY_USERNAME
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
-    settings:
-      registry: $REGISTRY
-      username: $REGISTRY_USERNAME
-      password: $REGISTRY_PASSWORD
-      repo: $REGISTRY/test/drone-tutorial
-      tags:
-        - latest
-      dockerfile: ./project/Dockerfile
-      context: ./project
-      cache: true
-      cache_repo: $REGISTRY/test/drone-tutorial/cache
+    commands:
+      - echo $REGISTRY $REGISTRY_USERNAME
+      - /kaniko/executor --dockerfile=./project/Dockerfile --context=dir://./project --destination=$REGISTRY/test/drone-tutorial:latest --cache=true
+
+  # - name: build and push docker image
+  #   image: plugins/kaniko
+  #   environment:
+  #     REGISTRY:
+  #       from_secret: REGISTRY
+  #     REGISTRY_USERNAME:
+  #       from_secret: REGISTRY_USERNAME
+  #     REGISTRY_PASSWORD:
+  #       from_secret: REGISTRY_PASSWORD
+  #   settings:
+  #     registry: $REGISTRY
+  #     username:
+  #       from_secret: REGISTRY_USERNAME
+  #     password:
+  #       from_secret: REGISTRY_PASSWORD
+  #     repo: ${REGISTRY}/test/drone-tutorial
+  #     tags:
+  #       - latest
+  #     dockerfile: ./project/Dockerfile
+  #     context: ./project
+  #     cache: true
+  #     cache_repo: ${REGISTRY}/test/drone-tutorial/cache
