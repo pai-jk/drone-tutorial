@@ -37,8 +37,8 @@ steps:
       - echo $registry
       - echo $username
 
-  - name: kaniko manual build
-    image: gcr.io/kaniko-project/executor
+  - name: build and push docker image
+    image: plugins/kaniko
     environment:
       REGISTRY:
         from_secret: REGISTRY
@@ -46,29 +46,16 @@ steps:
         from_secret: REGISTRY_USERNAME
       REGISTRY_PASSWORD:
         from_secret: REGISTRY_PASSWORD
-    commands:
-      - mkdir -p /kaniko/.docker
-      - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USERNAME\",\"password\":\"$REGISTRY_PASSWORD\",\"auth\":\"$(echo -n $REGISTRY_USERNAME:$REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-
-  # - name: build and push docker image
-  #   image: plugins/kaniko
-  #   environment:
-  #     REGISTRY:
-  #       from_secret: REGISTRY
-  #     REGISTRY_USERNAME:
-  #       from_secret: REGISTRY_USERNAME
-  #     REGISTRY_PASSWORD:
-  #       from_secret: REGISTRY_PASSWORD
-  #   settings:
-  #     registry: $REGISTRY
-  #     username:
-  #       from_secret: REGISTRY_USERNAME
-  #     password:
-  #       from_secret: REGISTRY_PASSWORD
-  #     repo: ${REGISTRY}/test/drone-tutorial
-  #     tags:
-  #       - latest
-  #     dockerfile: ./project/Dockerfile
-  #     context: ./project
-  #     cache: true
-  #     cache_repo: ${REGISTRY}/test/drone-tutorial/cache
+    settings:
+      registry: $REGISTRY
+      username:
+        from_secret: REGISTRY_USERNAME
+      password:
+        from_secret: REGISTRY_PASSWORD
+      repo: harbor.pai-world.com/test/drone-tutorial
+      tags:
+        - latest
+      dockerfile: ./project/Dockerfile
+      context: ./project
+      cache: true
+      cache_repo: harbor.pai-world.com/test/drone-tutorial/cache
