@@ -63,5 +63,5 @@ steps:
       registry: harbor.pai-world.com
       username: admin
       password: Harbor12345
-      repo: test/drone-tutorial
+      repo: harbor.pai-world.com/test/drone-tutorial
       tags: latest
