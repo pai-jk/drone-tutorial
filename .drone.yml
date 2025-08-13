@@ -3,6 +3,13 @@ type: kubernetes
 name: default
 
 steps:
+  - name: print secrets
+    image: alpine
+    commands:
+      - echo $REGISTRY
+      - echo $REGISTRY_USERNAME
+      - echo $REGISTRY_PASSWORD
+
   - name: build and push docker image
     image: plugins/kaniko
     settings:
@@ -12,10 +19,10 @@ steps:
         from_secret: REGISTRY_USERNAME
       password:
         from_secret: REGISTRY_PASSWORD
-      repo: ${registry}/test/drone-tutorial
+      repo: ${REGISTRY}/test/drone-tutorial
       tags:
         - latest
       dockerfile: ./project/Dockerfile # Dockerfile 경로 (커스텀 지정 가능)
       context: ./project # 빌드 컨텍스트 (일반적으로 현재 디렉토리)
       cache: true # 캐시 활성화
-      cache_repo: ${registry}/test/drone-tutorial/cache # 캐시 저장소 지정
+      cache_repo: ${REGISTRY}/test/drone-tutorial/cache # 캐시 저장소 지정
